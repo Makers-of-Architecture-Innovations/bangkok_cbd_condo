@@ -2,7 +2,7 @@
 
 An interactive web app for exploring condominium projects in Bangkok's Central Business District (CBD), built with Vue.js 3 and Leaflet.js. Includes AI-powered semantic search via the OpenAI API.
 
-**[🔗 Live Demo](https://your-username.github.io/your-repo-name/Bangkok_CBD_Condominiums.html)**
+**[🔗 Live Demo](https://Makers-of-Architecture-Innovations.github.io/bangkok_cbd_condo/Bangkok_CBD_Condominiums.html)**
 
 ![Bangkok CBD Condominiums Explorer](https://img.shields.io/badge/Vue.js-3-42b883?logo=vue.js) ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?logo=leaflet) ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai) ![License](https://img.shields.io/badge/License-MIT-blue)
 
