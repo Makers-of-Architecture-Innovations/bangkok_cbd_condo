@@ -2,7 +2,7 @@
 
 An interactive web app for exploring condominium projects in Bangkok's Central Business District (CBD), built with Vue.js 3 and Leaflet.js. Includes AI-powered semantic search via the OpenAI API.
 
-**[🔗 Live Demo](https://Makers-of-Architecture-Innovations.github.io/bangkok_cbd_condo/index.html)**
+**[🔗 Live Demo]([https://Makers-of-Architecture-Innovations.github.io/bangkok_cbd_condo/index.html](https://makers-of-architecture-innovations.github.io/bangkok_cbd_condo/index.html))**
 
 ![Bangkok CBD Condominiums Explorer](https://img.shields.io/badge/Vue.js-3-42b883?logo=vue.js) ![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?logo=leaflet) ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai) ![License](https://img.shields.io/badge/License-MIT-blue)
 
@@ -42,13 +42,13 @@ An interactive web app for exploring condominium projects in Bangkok's Central B
 ## 🚀 Getting Started
 
 ### Option 1 — Open directly (no install needed)
-Download `Bangkok_CBD_Condominiums.html` and open it in any modern browser. No server required.
+Download `index.html` and open it in any modern browser. No server required.
 
 ### Option 2 — GitHub Pages
 1. Fork this repository
 2. Go to **Settings → Pages**
 3. Set source to `main` branch, `/ (root)` folder
-4. Access at `https://your-username.github.io/your-repo-name/Bangkok_CBD_Condominiums.html`
+4. Access at `https://your-username.github.io/your-repo-name/index.html`
 
 ### Using AI Search
 1. Get an API key from [platform.openai.com](https://platform.openai.com)
@@ -72,7 +72,7 @@ No npm, no build step, no dependencies to install — just a single `.html` file
 ## 📁 Repository Structure
 
 ```
-├── Bangkok_CBD_Condominiums.html   # Main web application (self-contained)
+├── index.html   # Main web application (self-contained)
 ├── Bangkok_CBD_Condominiums.xlsx   # Source data in Excel format
 ├── README.md
 └── LICENSE
