@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bangkok CBD Condominiums Explorer</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.4.21/vue.global.prod.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      --navy: #1E3A5F;
+      --navy-light: #2C5282;
+      --gold: #C9A84C;
+      --gold-light: #F6D860;
+      --bg: #F0F4F8;
+      --card: #FFFFFF;
+      --border: #CBD5E0;
+      --text: #2D3748;
+      --text-light: #718096;
+      --success: #38A169;
+      --danger: #E53E3E;
+      --warning: #D69E2E;
+      --info: #3182CE;
+      --ultra: #9B2335;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, var(--navy) 0%, #2a4a7f 100%);
+      color: #fff;
+      padding: 20px 28px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      position: sticky; top: 0; z-index: 1000;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; letter-spacing: .4px; }
+    .header h1 span { color: var(--gold-light); }
+    .header p { font-size: 11px; color: #A0AEC0; margin-top: 2px; }
+    .header-badge { background: var(--gold); color: var(--navy); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+    /* ── Nav Tabs ── */
+    .tabs { background: var(--navy-light); display: flex; gap: 0; padding: 0 28px; }
+    .tab-btn {
+      padding: 12px 24px; cursor: pointer; font-size: 13px; font-weight: 600;
+      color: #A0AEC0; border-bottom: 3px solid transparent;
+      transition: all .2s; user-select: none; letter-spacing: .3px;
+    }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { color: var(--gold-light); border-bottom-color: var(--gold); }
+    .tab-icon { margin-right: 6px; }
+
+    /* ── Filters Bar ── */
+    .filters-bar {
+      background: var(--card);
+      padding: 14px 28px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .filter-group { display: flex; align-items: center; gap: 6px; }
+    .filter-label { font-size: 11px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: .5px; }
+    .filter-input, .filter-select {
+      border: 1.5px solid var(--border); border-radius: 6px;
+      padding: 6px 10px; font-size: 13px; color: var(--text);
+      background: #fff; outline: none; transition: border .2s;
+    }
+    .filter-input:focus, .filter-select:focus { border-color: var(--navy); }
+    .filter-input.search-wide { width: 220px; }
+    .filter-select { cursor: pointer; }
+    .filter-input[type=number] { width: 110px; }
+    .btn-reset {
+      padding: 6px 14px; background: #EDF2F7; border: 1.5px solid var(--border);
+      border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;
+      color: var(--text-light); transition: all .2s;
+    }
+    .btn-reset:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .result-count { margin-left: auto; font-size: 12px; color: var(--text-light); font-weight: 600; }
+
+    /* ── Table View ── */
+    .table-container { overflow-x: auto; padding: 20px 28px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--card); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); overflow: hidden; }
+    thead th {
+      background: var(--navy); color: #fff; padding: 12px 14px;
+      font-size: 12px; font-weight: 600; text-align: left;
+      cursor: pointer; user-select: none; white-space: nowrap;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      transition: background .15s;
+    }
+    thead th:hover { background: var(--navy-light); }
+    thead th .sort-icon { margin-left: 4px; opacity: 0.5; }
+    thead th.sorted .sort-icon { opacity: 1; color: var(--gold-light); }
+    tbody tr { border-bottom: 1px solid #EDF2F7; transition: background .15s; }
+    tbody tr:hover { background: #EBF4FF; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
+    td.name-cell { font-weight: 600; color: var(--navy); min-width: 200px; }
+    td.name-th { font-size: 11px; color: var(--text-light); }
+    td.price-cell { font-weight: 600; white-space: nowrap; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .zone-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 12px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .price-tier-dot {
+      display: inline-block; width: 9px; height: 9px;
+      border-radius: 50%; margin-right: 5px; vertical-align: middle;
+    }
+    .empty-state { text-align: center; padding: 60px; color: var(--text-light); }
+
+    /* ── Map View ── */
+    .map-layout { display: flex; height: calc(100vh - 165px); }
+    #map { flex: 1; z-index: 1; }
+    .map-sidebar {
+      width: 320px; background: var(--card); border-left: 1px solid var(--border);
+      overflow-y: auto; display: flex; flex-direction: column;
+    }
+    .map-sidebar-header {
+      padding: 14px 16px; background: var(--navy); color: #fff;
+      font-size: 13px; font-weight: 600;
+    }
+    .map-card {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .15s;
+    }
+    .map-card:hover { background: #EBF4FF; }
+    .map-card.highlighted { background: #EBF8FF; border-left: 3px solid var(--info); }
+    .map-card-name { font-weight: 700; font-size: 13px; color: var(--navy); }
+    .map-card-name-th { font-size: 11px; color: var(--text-light); }
+    .map-card-info { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+    .map-card-price { font-size: 12px; font-weight: 600; margin-top: 3px; }
+    .legend-box {
+      margin: 14px 16px; padding: 10px 12px; background: #F7FAFC;
+      border-radius: 8px; border: 1px solid var(--border);
+    }
+    .legend-title { font-size: 11px; font-weight: 700; color: var(--text-light); margin-bottom: 8px; text-transform: uppercase; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; color: var(--text-light); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); flex-shrink: 0; }
+
+    /* ── AI Search View ── */
+    .ai-layout { padding: 28px; max-width: 900px; margin: 0 auto; }
+    .ai-card { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 20px; }
+    .ai-card h2 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+    .ai-card .subtitle { font-size: 13px; color: var(--text-light); margin-bottom: 18px; }
+    .api-key-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .api-key-input {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; font-family: monospace;
+      outline: none; transition: border .2s;
+    }
+    .api-key-input:focus { border-color: var(--navy); }
+    .ai-search-row { display: flex; gap: 10px; }
+    .ai-query-input {
+      flex: 1; border: 2px solid var(--border); border-radius: 8px;
+      padding: 12px 16px; font-size: 14px; outline: none;
+      transition: border .2s; resize: none; min-height: 52px;
+      font-family: inherit;
+    }
+    .ai-query-input:focus { border-color: var(--navy); }
+    .btn-ai-search {
+      padding: 12px 24px; background: var(--navy); color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 700; transition: background .2s;
+      white-space: nowrap;
+    }
+    .btn-ai-search:hover:not(:disabled) { background: var(--navy-light); }
+    .btn-ai-search:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ai-hint { font-size: 11px; color: var(--text-light); margin-top: 10px; }
+    .ai-hint span { background: #EDF2F7; border-radius: 4px; padding: 2px 7px; margin: 0 2px; cursor: pointer; border: 1px solid var(--border); }
+    .ai-hint span:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .loading-spinner {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; padding: 30px; color: var(--text-light); font-size: 14px;
+    }
+    .spinner {
+      width: 28px; height: 28px; border: 3px solid var(--border);
+      border-top-color: var(--navy); border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .ai-result-card {
+      background: var(--card); border-radius: 10px;
+      border: 1.5px solid var(--border);
+      padding: 16px 18px; margin-bottom: 12px;
+      display: flex; gap: 14px; align-items: flex-start;
+      transition: box-shadow .2s;
+    }
+    .ai-result-card:hover { box-shadow: 0 4px 16px rgba(30,58,95,0.12); border-color: var(--navy-light); }
+    .ai-rank { width: 32px; height: 32px; background: var(--navy); color: #fff;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .ai-rank-1 { background: #C6A223; }
+    .ai-rank-2 { background: #9CA3AF; }
+    .ai-rank-3 { background: #92713C; }
+    .ai-result-body { flex: 1; }
+    .ai-result-name { font-size: 15px; font-weight: 700; color: var(--navy); }
+    .ai-result-name-th { font-size: 12px; color: var(--text-light); margin-top: 1px; }
+    .ai-result-meta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+    .ai-meta-item { font-size: 12px; color: var(--text-light); }
+    .ai-meta-item strong { color: var(--text); }
+    .ai-relevance { font-size: 11px; color: var(--success); font-weight: 600; margin-top: 6px; }
+    .error-box { background: #FFF5F5; border: 1.5px solid #FC8181; border-radius: 8px; padding: 12px 16px; color: var(--danger); font-size: 13px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .header { padding: 14px 16px; }
+      .tabs { padding: 0 16px; }
+      .filters-bar { padding: 12px 16px; }
+      .table-container { padding: 14px 16px; }
+      .map-layout { flex-direction: column; }
+      .map-sidebar { width: 100%; height: 280px; border-left: none; border-top: 1px solid var(--border); }
+      .ai-layout { padding: 16px; }
+    }
+
+    /* Leaflet popup */
+    .leaflet-popup-content { min-width: 220px; font-family: 'Segoe UI', Arial, sans-serif; }
+    .popup-title { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .popup-th { font-size: 11px; color: var(--text-light); margin-bottom: 8px; }
+    .popup-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; border-bottom: 1px dotted #EDF2F7; padding-bottom: 3px; }
+    .popup-row .label { color: var(--text-light); }
+    .popup-row .value { font-weight: 600; color: var(--text); }
+    .popup-price { font-size: 13px; font-weight: 700; color: var(--navy); margin-top: 6px; text-align: center; background: #EBF8FF; padding: 4px 8px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- ── Header ── -->
+  <div class="header">
+    <div>
+      <h1>🏙️ Bangkok <span>CBD Condominiums</span> Explorer</h1>
+      <p>คอนโดมิเนียมย่าน CBD กรุงเทพมหานคร 2021–2026  ·  25 โครงการ</p>
+    </div>
+    <div class="header-badge">25 Projects</div>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <div class="tabs">
+    <div class="tab-btn" :class="{active: tab==='table'}" @click="tab='table'">
+      <span class="tab-icon">📋</span>ตาราง / Table
+    </div>
+    <div class="tab-btn" :class="{active: tab==='map'}" @click="switchToMap">
+      <span class="tab-icon">🗺️</span>แผนที่ / Map
+    </div>
+    <div class="tab-btn" :class="{active: tab==='ai'}" @click="tab='ai'">
+      <span class="tab-icon">🤖</span>AI Search
+    </div>
+  </div>
+
+  <!-- ── Filters (Table & Map) ── -->
+  <div v-if="tab !== 'ai'" class="filters-bar">
+    <div class="filter-group">
+      <span class="filter-label">🔍</span>
+      <input class="filter-input search-wide" v-model="fSearch" placeholder="ค้นหา ชื่อ / ดีเวลลอปเปอร์ / สถาปนิก..." />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">โซน</span>
+      <select class="filter-select" v-model="fZone">
+        <option value="">ทั้งหมด</option>
+        <option v-for="z in allZones" :key="z">{{ z }}</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">ดีเวลลอปเปอร์</span>
+      <select class="filter-select" v-model="fDev">
+        <option value="">ทั้งหมด</option>
+        <option v-for="d in allDevs" :key="d">{{ d }}</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">ราคา/ตร.ม. (บาท)</span>
+      <input class="filter-input" type="number" v-model="fPriceMin" placeholder="ต่ำสุด" step="50000" />
+      <span style="color:var(--text-light)">–</span>
+      <input class="filter-input" type="number" v-model="fPriceMax" placeholder="สูงสุด" step="50000" />
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">ปีเปิดตัว</span>
+      <select class="filter-select" v-model="fYear">
+        <option value="">ทุกปี</option>
+        <option v-for="y in allYears" :key="y">{{ y }}</option>
+      </select>
+    </div>
+    <button class="btn-reset" @click="resetFilters">✕ รีเซ็ต</button>
+    <div class="result-count">{{ filteredCondos.length }} โครงการ</div>
+  </div>
+
+  <!-- ════════════════════ TABLE VIEW ════════════════════ -->
+  <div v-if="tab==='table'" class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th @click="sort('id')">#<span class="sort-icon" :class="{sorted:sortKey==='id'}">{{ sortDir(sortKey==='id') }}</span></th>
+          <th @click="sort('name')" style="min-width:220px">ชื่อโครงการ<span class="sort-icon" :class="{sorted:sortKey==='name'}">{{ sortDir(sortKey==='name') }}</span></th>
+          <th @click="sort('zone')">โซน<span class="sort-icon" :class="{sorted:sortKey==='zone'}">{{ sortDir(sortKey==='zone') }}</span></th>
+          <th @click="sort('developer')" style="min-width:180px">ดีเวลลอปเปอร์<span class="sort-icon" :class="{sorted:sortKey==='developer'}">{{ sortDir(sortKey==='developer') }}</span></th>
+          <th style="min-width:160px">สถาปนิก</th>
+          <th @click="sort('sales_area')" class="num">พื้นที่ขาย<br>(ตร.ม.)<span class="sort-icon" :class="{sorted:sortKey==='sales_area'}">{{ sortDir(sortKey==='sales_area') }}</span></th>
+          <th @click="sort('price_min')" class="num" style="min-width:130px">ราคา/ตร.ม. (บาท)<span class="sort-icon" :class="{sorted:sortKey==='price_min'}">{{ sortDir(sortKey==='price_min') }}</span></th>
+          <th @click="sort('min_room')" class="num">ห้องเล็กสุด<br>(ตร.ม.)<span class="sort-icon" :class="{sorted:sortKey==='min_room'}">{{ sortDir(sortKey==='min_room') }}</span></th>
+          <th @click="sort('max_room')" class="num">ห้องใหญ่สุด<br>(ตร.ม.)<span class="sort-icon" :class="{sorted:sortKey==='max_room'}">{{ sortDir(sortKey==='max_room') }}</span></th>
+          <th @click="sort('year_launch')" class="num">ปีเปิดตัว<span class="sort-icon" :class="{sorted:sortKey==='year_launch'}">{{ sortDir(sortKey==='year_launch') }}</span></th>
+          <th @click="sort('year_completion')" class="num">ปีแล้วเสร็จ<span class="sort-icon" :class="{sorted:sortKey==='year_completion'}">{{ sortDir(sortKey==='year_completion') }}</span></th>
+          <th @click="sort('total_units')" class="num">ยูนิต<span class="sort-icon" :class="{sorted:sortKey==='total_units'}">{{ sortDir(sortKey==='total_units') }}</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-if="filteredCondos.length === 0">
+          <td colspan="12" class="empty-state">😕 ไม่พบโครงการที่ตรงกับเงื่อนไข</td>
+        </tr>
+        <tr v-for="c in sortedCondos" :key="c.id">
+          <td style="text-align:center;font-weight:600;color:var(--navy-light)">{{ c.id }}</td>
+          <td class="name-cell">
+            <div>{{ c.name }}</div>
+            <div class="name-th">{{ c.name_th }}</div>
+            <div style="font-size:11px;color:var(--text-light);margin-top:2px">{{ c.location }}</div>
+          </td>
+          <td>
+            <span class="zone-badge" :style="zoneBadgeStyle(c.zone)">{{ c.zone }}</span>
+          </td>
+          <td style="font-size:12px">{{ c.developer }}</td>
+          <td style="font-size:12px;color:var(--text-light)">{{ c.architect }}</td>
+          <td class="num">{{ c.sales_area.toLocaleString() }}</td>
+          <td class="num price-cell">
+            <span class="price-tier-dot" :style="{background: priceColor(c.price_min)}"></span>
+            {{ c.price_min.toLocaleString() }}–{{ c.price_max.toLocaleString() }}
+          </td>
+          <td class="num">{{ c.min_room }}</td>
+          <td class="num">{{ c.max_room }}</td>
+          <td class="num" style="text-align:center">{{ c.year_launch }}</td>
+          <td class="num" style="text-align:center">
+            <span :style="{color: c.year_completion > 2025 ? 'var(--warning)' : 'var(--success)', fontWeight:600}">
+              {{ c.year_completion }}
+            </span>
+          </td>
+          <td class="num">{{ c.total_units.toLocaleString() }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Legend -->
+    <div style="display:flex;gap:16px;align-items:center;margin-top:14px;padding:10px 4px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px">ระดับราคา:</span>
+      <span v-for="t in priceTiers" :key="t.label" style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-light)">
+        <span class="price-tier-dot" :style="{background:t.color, width:'10px',height:'10px',borderRadius:'50%',display:'inline-block'}"></span>{{ t.label }}
+      </span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-light)">* ราคาเป็นค่าโดยประมาณ ณ ช่วงเปิดตัว</span>
+    </div>
+  </div>
+
+  <!-- ════════════════════ MAP VIEW ════════════════════ -->
+  <div v-if="tab==='map'" class="map-layout">
+    <div id="map"></div>
+    <div class="map-sidebar">
+      <div class="map-sidebar-header">
+        🏢 {{ filteredCondos.length }} โครงการในพื้นที่ CBD
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">ระดับราคา (THB/ตร.ม.)</div>
+        <div class="legend-item" v-for="t in priceTiers" :key="t.label">
+          <div class="legend-dot" :style="{background: t.color}"></div>
+          <span>{{ t.label }}</span>
+        </div>
+      </div>
+      <div
+        v-for="c in filteredCondos" :key="c.id"
+        class="map-card"
+        :class="{highlighted: highlightedId === c.id}"
+        @click="focusMapMarker(c)"
+      >
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <div class="legend-dot" :style="{background: priceColor(c.price_min), marginTop:'4px', flexShrink:0}"></div>
+          <div style="flex:1">
+            <div class="map-card-name">{{ c.name }}</div>
+            <div class="map-card-name-th">{{ c.name_th }}</div>
+            <div class="map-card-info">{{ c.zone }} · {{ c.year_launch }}–{{ c.year_completion }}</div>
+            <div class="map-card-price" :style="{color: priceColor(c.price_min)}">
+              ฿{{ c.price_min.toLocaleString() }} – {{ c.price_max.toLocaleString() }}/ตร.ม.
+            </div>
+            <div style="font-size:11px;color:var(--text-light);margin-top:2px">
+              ห้อง {{ c.min_room }}–{{ c.max_room }} ตร.ม. · {{ c.total_units }} ยูนิต
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════ AI SEARCH VIEW ════════════════════ -->
+  <div v-if="tab==='ai'" class="ai-layout">
+    <div class="ai-card">
+      <h2>🤖 AI Semantic Search</h2>
+      <p class="subtitle">ค้นหาคอนโดด้วยภาษาธรรมชาติ ทั้งภาษาไทยและอังกฤษ — ใช้ OpenAI API</p>
+
+      <div class="api-key-row">
+        <input
+          class="api-key-input"
+          v-model="apiKey"
+          :type="showKey ? 'text' : 'password'"
+          placeholder="🔑 กรอก OpenAI API Key (sk-...)"
+        />
+        <button @click="showKey=!showKey" style="padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;background:#F7FAFC;font-size:12px">
+          {{ showKey ? '🙈 ซ่อน' : '👁 แสดง' }}
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);margin-bottom:14px">
+        🔒 API Key ไม่ถูกเก็บบันทึกหรือส่งไปยังเซิร์ฟเวอร์ใดๆ ใช้เพื่อเรียก OpenAI API โดยตรงจาก browser ของคุณเท่านั้น
+      </div>
+
+      <div class="ai-search-row">
+        <textarea
+          class="ai-query-input"
+          v-model="aiQuery"
+          placeholder="เช่น: คอนโดหรูในย่านสุขุมวิทที่มีห้องขนาดใหญ่ หรือ luxury condo Silom with branded architect under 400k baht/sqm"
+          @keydown.enter.ctrl="doAISearch"
+        ></textarea>
+        <button class="btn-ai-search" @click="doAISearch" :disabled="aiLoading || !apiKey || !aiQuery">
+          {{ aiLoading ? '⏳ กำลังค้น...' : '🔍 ค้นหา' }}
+        </button>
+      </div>
+      <div class="ai-hint">
+        💡 ตัวอย่าง: คลิกเพื่อลอง →
+        <span @click="tryHint('คอนโดหรูมากโซนสีลมหรือสาทร ราคาสูง สถาปนิกมีชื่อเสียงระดับโลก')">สุดหรู สีลม/สาทร</span>
+        <span @click="tryHint('คอนโดที่เหมาะสำหรับนักลงทุน ราคาไม่แพง ยูนิตเล็ก ใกล้ BTS')">ราคาน่าลงทุน</span>
+        <span @click="tryHint('large rooms family-sized condo Sukhumvit developed by top Thai developers')">Family Condo Sukhumvit</span>
+        <span @click="tryHint('ultra luxury branded residences with international architects completed or near completion')">Ultra Luxury Branded</span>
+      </div>
+    </div>
+
+    <div v-if="aiError" class="error-box" style="margin-bottom:16px">
+      ⚠️ {{ aiError }}
+    </div>
+
+    <div v-if="aiLoading" class="loading-spinner">
+      <div class="spinner"></div>
+      <span>กำลังวิเคราะห์ข้อมูลด้วย AI...</span>
+    </div>
+
+    <div v-if="!aiLoading && aiResults.length > 0">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--text-light)">
+        🎯 พบ <strong>{{ aiResults.length }}</strong> โครงการที่ตรงกับการค้นหา (เรียงตามความเกี่ยวข้อง)
+      </div>
+      <div v-for="(r, idx) in aiResults" :key="r.id" class="ai-result-card">
+        <div class="ai-rank" :class="'ai-rank-'+(idx+1)">{{ idx+1 }}</div>
+        <div class="ai-result-body">
+          <div class="ai-result-name">{{ r.name }}</div>
+          <div class="ai-result-name-th">{{ r.name_th }} · {{ r.zone }} · {{ r.district }}</div>
+          <div class="ai-result-meta">
+            <div class="ai-meta-item">🏗 <strong>{{ r.developer }}</strong></div>
+            <div class="ai-meta-item">📐 <strong>{{ r.architect }}</strong></div>
+            <div class="ai-meta-item">📅 <strong>{{ r.year_launch }}–{{ r.year_completion }}</strong></div>
+            <div class="ai-meta-item">🏢 <strong>{{ r.total_units.toLocaleString() }}</strong> ยูนิต</div>
+          </div>
+          <div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px">ราคา/ตร.ม.</div>
+              <div style="font-size:15px;font-weight:700;" :style="{color: priceColor(r.price_min)}">
+                ฿{{ r.price_min.toLocaleString() }} – {{ r.price_max.toLocaleString() }}
+              </div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px">ขนาดห้อง</div>
+              <div style="font-size:15px;font-weight:700;color:var(--navy)">{{ r.min_room }} – {{ r.max_room }} ตร.ม.</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px">พื้นที่ขาย</div>
+              <div style="font-size:15px;font-weight:700;color:var(--text)">{{ r.sales_area.toLocaleString() }} ตร.ม.</div>
+            </div>
+          </div>
+          <div v-if="r.ai_reason" class="ai-relevance">✨ {{ r.ai_reason }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="!aiLoading && aiResults.length === 0 && aiSearched" style="text-align:center;padding:40px;color:var(--text-light)">
+      😕 ไม่พบผลลัพธ์ที่ตรงกัน ลองเปลี่ยนคำค้นหาใหม่
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+const CONDOS = [
+  {id:1,name:"Noble Form Thonglor",name_th:"โนเบิล ฟอร์ม ทองหล่อ",zone:"สุขุมวิท",location:"สุขุมวิท ซอย 55 (ทองหล่อ), วัฒนา",district:"วัฒนา",developer:"Noble Development PCL",architect:"Department of ARCHITECTURE (DBALP)",year_launch:2021,year_completion:2024,total_units:546,sales_area:41500,price_min:180000,price_max:230000,min_room:31.77,max_room:76.17,lat:13.7268,lng:100.5825},
+  {id:2,name:"SCOPE Langsuan",name_th:"สโคป หลังสวน",zone:"เพลินจิต / หลังสวน",location:"ถ.หลังสวน, ลุมพินี, ปทุมวัน",district:"ปทุมวัน",developer:"Scope Co., Ltd.",architect:"Kohn Pedersen Fox (KPF) + Thomas Juul-Hansen",year_launch:2021,year_completion:2023,total_units:158,sales_area:21000,price_min:550000,price_max:700000,min_room:83.97,max_room:433.62,lat:13.7438,lng:100.5400},
+  {id:3,name:"MUNIQ Langsuan",name_th:"มิวนิค หลังสวน",zone:"เพลินจิต / หลังสวน",location:"ถ.สารสิน, ลุมพินี, ปทุมวัน",district:"ปทุมวัน",developer:"Major Development PCL",architect:"Architects 49 Limited (A49)",year_launch:2021,year_completion:2023,total_units:174,sales_area:20000,price_min:350000,price_max:450000,min_room:51,max_room:255,lat:13.7420,lng:100.5415},
+  {id:4,name:"Hyde Heritage Thonglor",name_th:"ไฮด์ เฮอริเทจ ทองหล่อ",zone:"สุขุมวิท",location:"ถ.สุขุมวิท (ทองหล่อ), วัฒนา",district:"วัฒนา",developer:"Grande Asset Hotels & Property + Property Perfect + Sumitomo Forestry",architect:"DP Architects",year_launch:2019,year_completion:2022,total_units:222,sales_area:22500,price_min:190000,price_max:260000,min_room:35.5,max_room:230,lat:13.7300,lng:100.5833},
+  {id:5,name:"Aman Residences Bangkok",name_th:"อามาน เรสซิเดนซ์ แบงค็อก",zone:"ไวร์เลส / เพลินจิต",location:"ถ.วิทยุ, Nai Lert Park, ปทุมวัน",district:"ปทุมวัน",developer:"Nai Lert Estate + Aman Group",architect:"Jean-Michel Gathy (Denniston International)",year_launch:2023,year_completion:2026,total_units:39,sales_area:15000,price_min:900000,price_max:1200000,min_room:120,max_room:580,lat:13.7434,lng:100.5490},
+  {id:6,name:"The Estelle Phrom Phong",name_th:"เดอะ เอสเทลล์ พร้อมพงษ์",zone:"สุขุมวิท",location:"สุขุมวิท 26, คลองเตย",district:"คลองเตย",developer:"Raimon Land PCL",architect:"Architects 49 Limited (A49)",year_launch:2021,year_completion:2024,total_units:148,sales_area:22000,price_min:250000,price_max:320000,min_room:55,max_room:205,lat:13.7333,lng:100.5680},
+  {id:7,name:"Porsche Design Tower Bangkok",name_th:"พอร์ช ดีไซน์ ทาวเวอร์ แบงค็อก",zone:"พระราม 4 / สุขุมวิท",location:"ถ.พระราม 4, คลองเตย",district:"คลองเตย",developer:"Ananda Development PCL + Porsche Design Group",architect:"Porsche Design Studio + Büro Ole Scheeren",year_launch:2023,year_completion:2028,total_units:22,sales_area:12000,price_min:800000,price_max:1400000,min_room:150,max_room:600,lat:13.7235,lng:100.5530},
+  {id:8,name:"Supalai Icon Sathorn",name_th:"ศุภาลัย ไอคอน สาทร",zone:"สาทร",location:"ถ.สาทร, ยานนาวา, สาทร",district:"สาทร",developer:"Supalai PCL",architect:"Plan Architect Co., Ltd.",year_launch:2021,year_completion:2025,total_units:890,sales_area:65000,price_min:145000,price_max:195000,min_room:42,max_room:343,lat:13.7195,lng:100.5330},
+  {id:9,name:"Life Rama 4 Asoke",name_th:"ไลฟ์ พระราม 4 อโศก",zone:"อโศก / พระราม 4",location:"ถ.พระราม 4, ควีนสิริกิต์, คลองเตย",district:"คลองเตย",developer:"AP Thailand PCL",architect:"Plan Architect Co., Ltd.",year_launch:2022,year_completion:2025,total_units:650,sales_area:36000,price_min:130000,price_max:165000,min_room:27.5,max_room:73.5,lat:13.7270,lng:100.5647},
+  {id:10,name:"Quintara MHy'ZEN Phrom Phong",name_th:"ควินทาร่า มิวเซน พร้อมพงษ์",zone:"สุขุมวิท",location:"สุขุมวิท 31, พร้อมพงษ์, วัฒนา",district:"วัฒนา",developer:"Quintara Property Co., Ltd.",architect:"IDIN Architects Co., Ltd.",year_launch:2022,year_completion:2025,total_units:311,sales_area:15500,price_min:150000,price_max:210000,min_room:21,max_room:60,lat:13.7318,lng:100.5705},
+  {id:11,name:"Anil Sathorn 12",name_th:"อนิล สาทร 12",zone:"สาทร",location:"ซ.สาทร 12, สาทร",district:"สาทร",developer:"Grand Unity Development Co., Ltd.",architect:"Boon Design Co., Ltd.",year_launch:2021,year_completion:2024,total_units:200,sales_area:18000,price_min:280000,price_max:380000,min_room:45,max_room:210,lat:13.7202,lng:100.5225},
+  {id:12,name:"CLOUD Residences SKV23",name_th:"คลาวด์ เรสซิเดนซ์ สุขุมวิท 23",zone:"สุขุมวิท / อโศก",location:"สุขุมวิท 23, อโศก, วัฒนา",district:"วัฒนา",developer:"RISLAND (Thailand) Co., Ltd.",architect:"Palmer & Turner (P&T)",year_launch:2022,year_completion:2024,total_units:396,sales_area:25000,price_min:180000,price_max:250000,min_room:33.5,max_room:120,lat:13.7375,lng:100.5642},
+  {id:13,name:"Ashton Silom",name_th:"แอชตัน สีลม",zone:"สีลม",location:"ถ.สีลม, บางรัก",district:"บางรัก",developer:"Ananda Development PCL",architect:"Department of ARCHITECTURE (DBALP)",year_launch:2019,year_completion:2022,total_units:247,sales_area:19500,price_min:250000,price_max:350000,min_room:28.6,max_room:98.2,lat:13.7258,lng:100.5282},
+  {id:14,name:"The Residences at Sindhorn Kempinski",name_th:"เดอะ เรสซิเดนซ์ แอท สินธร เคมปินสกี้",zone:"เพลินจิต / หลังสวน",location:"ถ.หลังสวน, ลุมพินี, ปทุมวัน",district:"ปทุมวัน",developer:"Siam Sindhorn Co., Ltd.",architect:"Skidmore, Owings & Merrill (SOM)",year_launch:2021,year_completion:2022,total_units:173,sales_area:24000,price_min:380000,price_max:520000,min_room:65,max_room:350,lat:13.7440,lng:100.5368},
+  {id:15,name:"The Residences at Mandarin Oriental",name_th:"เดอะ เรสซิเดนซ์ แอท แมนดาริน โอเรียนเต็ล",zone:"ริมน้ำ / สีลม",location:"ถ.เจริญกรุง, บางรัก",district:"บางรัก",developer:"Raimon Land PCL + Mandarin Oriental Group",architect:"Architects 49 Limited (A49)",year_launch:2021,year_completion:2024,total_units:146,sales_area:30000,price_min:450000,price_max:650000,min_room:95,max_room:480,lat:13.7210,lng:100.5140},
+  {id:16,name:"RHYTHM Ekkamai Estate",name_th:"ริทึ่ม เอกมัย เอสเตท",zone:"สุขุมวิท",location:"สุขุมวิท 63 (เอกมัย), วัฒนา",district:"วัฒนา",developer:"AP Thailand PCL",architect:"CHAT Architects Co., Ltd.",year_launch:2022,year_completion:2024,total_units:426,sales_area:28500,price_min:130000,price_max:165000,min_room:30.5,max_room:110,lat:13.7235,lng:100.5880},
+  {id:17,name:"QUAD Silom",name_th:"ควอด สีลม",zone:"สีลม",location:"ถ.นราธิวาสราชนครินทร์, สีลม, บางรัก",district:"บางรัก",developer:"SC Asset Corporation PCL",architect:"Casa Architect Co., Ltd.",year_launch:2023,year_completion:2026,total_units:129,sales_area:10500,price_min:160000,price_max:220000,min_room:32,max_room:95,lat:13.7245,lng:100.5295},
+  {id:18,name:"Life Sathorn Sierra",name_th:"ไลฟ์ สาทร เซียร่า",zone:"สาทร",location:"ถ.สาทร, บางรัก",district:"บางรัก",developer:"AP Thailand PCL",architect:"Plan Architect Co., Ltd.",year_launch:2022,year_completion:2025,total_units:562,sales_area:32000,price_min:120000,price_max:155000,min_room:27.5,max_room:68,lat:13.7218,lng:100.5275},
+  {id:19,name:"Park Origin Phrom Phong",name_th:"พาร์ค ออริจิ้น พร้อมพงษ์",zone:"สุขุมวิท",location:"สุขุมวิท 24, คลองเตย",district:"คลองเตย",developer:"Origin Property PCL",architect:"Architects 49 Limited (A49)",year_launch:2022,year_completion:2025,total_units:488,sales_area:30000,price_min:175000,price_max:235000,min_room:35,max_room:130,lat:13.7320,lng:100.5670},
+  {id:20,name:"Beatniq Sukhumvit 32",name_th:"บีทนิค สุขุมวิท 32",zone:"สุขุมวิท",location:"สุขุมวิท 32, วัฒนา",district:"วัฒนา",developer:"SC Asset Corporation PCL",architect:"IDIN Architects Co., Ltd.",year_launch:2021,year_completion:2024,total_units:121,sales_area:14000,price_min:250000,price_max:330000,min_room:50,max_room:180,lat:13.7295,lng:100.5660},
+  {id:21,name:"Ideo Q Sukhumvit 36",name_th:"ไอดีโอ คิว สุขุมวิท 36",zone:"สุขุมวิท",location:"สุขุมวิท 36, คลองเตย",district:"คลองเตย",developer:"Ananda Development PCL + MBK PCL",architect:"Department of ARCHITECTURE (DBALP)",year_launch:2022,year_completion:2025,total_units:512,sales_area:31000,price_min:140000,price_max:190000,min_room:26,max_room:82,lat:13.7308,lng:100.5652},
+  {id:22,name:"28 Chidlom",name_th:"28 ชิดลม",zone:"ชิดลม / เพลินจิต",location:"ถ.ชิดลม, ลุมพินี, ปทุมวัน",district:"ปทุมวัน",developer:"Sansiri PCL",architect:"CHAT Architects Co., Ltd.",year_launch:2021,year_completion:2024,total_units:199,sales_area:19500,price_min:280000,price_max:380000,min_room:52,max_room:185,lat:13.7408,lng:100.5465},
+  {id:23,name:"Nue Noble Ploenchit",name_th:"นิว โนเบิล เพลินจิต",zone:"เพลินจิต",location:"ถ.เพลินจิต, ลุมพินี, ปทุมวัน",district:"ปทุมวัน",developer:"Noble Development PCL",architect:"Department of ARCHITECTURE (DBALP)",year_launch:2022,year_completion:2025,total_units:206,sales_area:18000,price_min:200000,price_max:270000,min_room:35,max_room:140,lat:13.7408,lng:100.5478},
+  {id:24,name:"The Bangkok Sathorn",name_th:"เดอะ แบงค็อก สาทร",zone:"สาทร",location:"ถ.สาทรใต้, สาทร",district:"สาทร",developer:"Asset World Corp PCL",architect:"ADP Architects + HB Design",year_launch:2019,year_completion:2021,total_units:340,sales_area:25000,price_min:170000,price_max:245000,min_room:38,max_room:165,lat:13.7220,lng:100.5265},
+  {id:25,name:"Life Asoke Rama 9",name_th:"ไลฟ์ อโศก พระราม 9",zone:"อโศก / พระราม 9",location:"ถ.อโศก-ดินแดง, ราชเทวี",district:"ราชเทวี",developer:"AP Thailand PCL",architect:"Plan Architect Co., Ltd.",year_launch:2021,year_completion:2024,total_units:580,sales_area:34000,price_min:120000,price_max:155000,min_room:24.5,max_room:66.5,lat:13.7495,lng:100.5705},
+];
+
+const PRICE_TIERS = [
+  { label: "< 150k บาท/ตร.ม.", color: "#38A169", min: 0,      max: 149999 },
+  { label: "150k – 299k",       color: "#3182CE", min: 150000, max: 299999 },
+  { label: "300k – 499k",       color: "#D69E2E", min: 300000, max: 499999 },
+  { label: "500k – 899k",       color: "#E53E3E", min: 500000, max: 899999 },
+  { label: "900k+ (Ultra)",     color: "#9B2335", min: 900000, max: Infinity },
+];
+
+const ZONE_COLORS = {
+  "สุขุมวิท":           "#3182CE",
+  "สีลม":               "#E53E3E",
+  "สาทร":               "#D69E2E",
+  "เพลินจิต / หลังสวน": "#38A169",
+  "ไวร์เลส / เพลินจิต":  "#805AD5",
+  "เพลินจิต":           "#319795",
+  "ชิดลม / เพลินจิต":   "#DD6B20",
+  "ริมน้ำ / สีลม":       "#2C7A7B",
+  "อโศก / พระราม 4":    "#6B46C1",
+  "พระราม 4 / สุขุมวิท": "#B7791F",
+  "อโศก / พระราม 9":    "#2D3748",
+  "สุขุมวิท / อโศก":    "#2B6CB0",
+};
+
+createApp({
+  setup() {
+    const tab        = ref('table');
+    const fSearch    = ref('');
+    const fZone      = ref('');
+    const fDev       = ref('');
+    const fPriceMin  = ref('');
+    const fPriceMax  = ref('');
+    const fYear      = ref('');
+    const sortKey    = ref('id');
+    const sortAsc    = ref(true);
+    const highlightedId = ref(null);
+
+    const apiKey    = ref('');
+    const showKey   = ref(false);
+    const aiQuery   = ref('');
+    const aiResults = ref([]);
+    const aiLoading = ref(false);
+    const aiError   = ref('');
+    const aiSearched = ref(false);
+
+    let leafletMap = null;
+    let leafletMarkers = {};
+
+    const allZones = [...new Set(CONDOS.map(c => c.zone))].sort();
+    const allDevs  = [...new Set(CONDOS.map(c => {
+      const first = c.developer.split('+')[0].split(' PCL')[0].trim();
+      return first;
+    }))].sort();
+    const allYears = [...new Set(CONDOS.map(c => c.year_launch))].sort();
+
+    const filteredCondos = computed(() => {
+      return CONDOS.filter(c => {
+        if (fZone.value && c.zone !== fZone.value) return false;
+        if (fDev.value && !c.developer.startsWith(fDev.value)) return false;
+        if (fYear.value && c.year_launch !== Number(fYear.value)) return false;
+        const pmin = fPriceMin.value ? Number(fPriceMin.value) : 0;
+        const pmax = fPriceMax.value ? Number(fPriceMax.value) : Infinity;
+        if (c.price_max < pmin || c.price_min > pmax) return false;
+        if (fSearch.value) {
+          const q = fSearch.value.toLowerCase();
+          if (!c.name.toLowerCase().includes(q) &&
+              !c.name_th.includes(q) &&
+              !c.developer.toLowerCase().includes(q) &&
+              !c.architect.toLowerCase().includes(q) &&
+              !c.location.toLowerCase().includes(q)) return false;
+        }
+        return true;
+      });
+    });
+
+    const sortedCondos = computed(() => {
+      const arr = [...filteredCondos.value];
+      arr.sort((a, b) => {
+        const av = a[sortKey.value], bv = b[sortKey.value];
+        if (typeof av === 'string') return sortAsc.value ? av.localeCompare(bv) : bv.localeCompare(av);
+        return sortAsc.value ? av - bv : bv - av;
+      });
+      return arr;
+    });
+
+    function sort(key) {
+      if (sortKey.value === key) sortAsc.value = !sortAsc.value;
+      else { sortKey.value = key; sortAsc.value = true; }
+    }
+    function sortDir(active) { return active ? (sortAsc.value ? ' ↑' : ' ↓') : ' ↕'; }
+
+    function resetFilters() {
+      fSearch.value = ''; fZone.value = ''; fDev.value = '';
+      fPriceMin.value = ''; fPriceMax.value = ''; fYear.value = '';
+    }
+
+    function priceColor(price) {
+      for (const t of PRICE_TIERS) {
+        if (price >= t.min && price <= t.max) return t.color;
+      }
+      return '#718096';
+    }
+
+    function zoneBadgeStyle(zone) {
+      const color = ZONE_COLORS[zone] || '#4A5568';
+      return { background: color + '22', color, border: `1px solid ${color}44` };
+    }
+
+    // ── Map ──────────────────────────────────────────────────────────────────
+    function initMap() {
+      if (leafletMap) return;
+      leafletMap = L.map('map').setView([13.7340, 100.5535], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(leafletMap);
+
+      CONDOS.forEach(c => {
+        const color = priceColor(c.price_min);
+        const marker = L.circleMarker([c.lat, c.lng], {
+          radius: 10, fillColor: color, color: '#fff',
+          weight: 2.5, opacity: 1, fillOpacity: 0.85,
+        }).addTo(leafletMap);
+
+        const popup = `
+          <div>
+            <div class="popup-title">${c.name}</div>
+            <div class="popup-th">${c.name_th}</div>
+            <div class="popup-row"><span class="label">โซน</span><span class="value">${c.zone}</span></div>
+            <div class="popup-row"><span class="label">ดีเวลลอปเปอร์</span><span class="value" style="font-size:11px">${c.developer.split('+')[0].trim()}</span></div>
+            <div class="popup-row"><span class="label">สถาปนิก</span><span class="value" style="font-size:11px">${c.architect.split('+')[0].trim()}</span></div>
+            <div class="popup-row"><span class="label">ปี</span><span class="value">${c.year_launch} – ${c.year_completion}</span></div>
+            <div class="popup-row"><span class="label">ยูนิต</span><span class="value">${c.total_units.toLocaleString()}</span></div>
+            <div class="popup-row"><span class="label">ห้อง</span><span class="value">${c.min_room} – ${c.max_room} ตร.ม.</span></div>
+            <div class="popup-price">฿${c.price_min.toLocaleString()} – ${c.price_max.toLocaleString()} / ตร.ม.</div>
+          </div>`;
+        marker.bindPopup(popup, { maxWidth: 260 });
+        marker.on('mouseover', function() { this.openPopup(); });
+        marker.on('click', function() {
+          highlightedId.value = c.id;
+          const el = document.getElementById('map-card-' + c.id);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+        leafletMarkers[c.id] = marker;
+      });
+    }
+
+    async function switchToMap() {
+      tab.value = 'map';
+      await nextTick();
+      initMap();
+    }
+
+    function focusMapMarker(condo) {
+      highlightedId.value = condo.id;
+      if (leafletMap && leafletMarkers[condo.id]) {
+        leafletMap.setView([condo.lat, condo.lng], 15, { animate: true });
+        leafletMarkers[condo.id].openPopup();
+      }
+    }
+
+    watch(filteredCondos, () => {
+      if (!leafletMap) return;
+      CONDOS.forEach(c => {
+        const marker = leafletMarkers[c.id];
+        if (!marker) return;
+        const visible = filteredCondos.value.some(fc => fc.id === c.id);
+        if (visible) {
+          if (!leafletMap.hasLayer(marker)) marker.addTo(leafletMap);
+        } else {
+          if (leafletMap.hasLayer(marker)) leafletMap.removeLayer(marker);
+        }
+      });
+    });
+
+    // ── AI Search ─────────────────────────────────────────────────────────────
+    async function doAISearch() {
+      if (!apiKey.value.trim() || !aiQuery.value.trim()) return;
+      aiLoading.value = true;
+      aiError.value = '';
+      aiResults.value = [];
+      aiSearched.value = true;
+
+      const projectList = CONDOS.map((c, i) =>
+        `${i}. ${c.name} | ชื่อไทย: ${c.name_th} | โซน: ${c.zone} | เขต: ${c.district} | ดีเวลลอปเปอร์: ${c.developer} | สถาปนิก: ${c.architect} | ปีเปิดตัว: ${c.year_launch} | ปีแล้วเสร็จ: ${c.year_completion} | ราคา/ตร.ม.: ${c.price_min.toLocaleString()}-${c.price_max.toLocaleString()} บาท | ห้องเล็กสุด: ${c.min_room} ตร.ม. | ห้องใหญ่สุด: ${c.max_room} ตร.ม. | จำนวนยูนิต: ${c.total_units} | พื้นที่ขาย: ${c.sales_area.toLocaleString()} ตร.ม.`
+      ).join('\n');
+
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey.value.trim()}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              {
+                role: 'system',
+                content: `คุณเป็นผู้เชี่ยวชาญด้านอสังหาริมทรัพย์คอนโดมิเนียมในกรุงเทพ (CBD) ผู้ใช้จะค้นหาโครงการด้วยภาษาธรรมชาติ คุณต้องวิเคราะห์และเรียงลำดับโครงการตามความเกี่ยวข้องกับคำค้นหา
+ตอบกลับในรูปแบบ JSON เท่านั้น ดังนี้:
+{"results": [{"index": 0, "reason": "เหตุผลสั้นๆ ว่าทำไมโครงการนี้ถึงตรงกับการค้นหา"}, ...]}
+เรียงจากตรงที่สุดไปหาน้อยที่สุด รวมเฉพาะโครงการที่เกี่ยวข้อง (อย่างน้อย 3 โครงการ สูงสุดทั้งหมด 25)`,
+              },
+              {
+                role: 'user',
+                content: `คำค้นหา: "${aiQuery.value}"\n\nรายการโครงการ:\n${projectList}`,
+              },
+            ],
+            response_format: { type: 'json_object' },
+            temperature: 0.3,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error?.message || `API Error ${res.status}`);
+        }
+
+        const data = await res.json();
+        const parsed = JSON.parse(data.choices[0].message.content);
+        const rawResults = parsed.results || [];
+
+        aiResults.value = rawResults
+          .filter(r => r.index >= 0 && r.index < CONDOS.length)
+          .map(r => ({ ...CONDOS[r.index], ai_reason: r.reason }));
+
+      } catch (e) {
+        aiError.value = `❌ เกิดข้อผิดพลาด: ${e.message}. กรุณาตรวจสอบ API Key และการเชื่อมต่ออินเทอร์เน็ต`;
+      }
+
+      aiLoading.value = false;
+    }
+
+    function tryHint(text) {
+      aiQuery.value = text;
+    }
+
+    return {
+      tab, fSearch, fZone, fDev, fPriceMin, fPriceMax, fYear,
+      sortKey, sortAsc, highlightedId,
+      apiKey, showKey, aiQuery, aiResults, aiLoading, aiError, aiSearched,
+      allZones, allDevs, allYears, priceTiers: PRICE_TIERS,
+      filteredCondos, sortedCondos,
+      sort, sortDir, resetFilters, priceColor, zoneBadgeStyle,
+      switchToMap, focusMapMarker, doAISearch, tryHint,
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
